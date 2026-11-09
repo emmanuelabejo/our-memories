@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>The Map of Forgotten Places</title>
+
+        <style>
+            /* ---------- Colors you can change in one place ---------- */
+            :root {
+                --night: #14213d;
+                --paper: #f3e9d2;
+                --ink: #2b2118;
+                --gold: #d9a441;
+                --gold-dark: #b9822a;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 40px 20px;
+                background: radial-gradient(circle at top, #243b6b, var(--night));
+                color: var(--paper);
+                font-family: Georgia, "Times New Roman", serif;
+                text-align: center;
+            }
+
+            h1 {
+                margin: 0;
+                font-size: clamp(2rem, 6vw, 3.4rem);
+                letter-spacing: 0.12em;
+            }
+
+            .subtitle {
+                margin: 8px 0 28px;
+                font-style: italic;
+                opacity: 0.85;
+            }
+
+            /* ---------- The "map" card that holds the picture ---------- */
+            .map-card {
+                width: 100%;
+                max-width: 560px;
+                padding: 14px;
+                background: var(--paper);
+                border-radius: 6px;
+                box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+                transform: rotate(-1.2deg);
+            }
+
+            .map-card img {
+                display: block;
+                width: 100%;
+                height: 320px;
+                object-fit: cover;
+                border: 2px solid var(--ink);
+                background: #c9b88f;
+            }
+
+            .map-card .place-name {
+                margin: 12px 0 2px;
+                color: var(--ink);
+                font-size: 1.1rem;
+            }
+
+            /* ---------- Memory text ---------- */
+            #memory {
+                max-width: 520px;
+                min-height: 3.5em;
+                margin: 28px 0 8px;
+                font-size: 1.25rem;
+                line-height: 1.6;
+                transition: opacity 0.3s;
+            }
+
+            #memory.fade {
+                opacity: 0;
+            }
+
+            #counter {
+                margin: 0 0 24px;
+                font-size: 0.9rem;
+                opacity: 0.7;
+            }
+
+            /* ---------- Buttons ---------- */
+            .buttons {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 12px;
+            }
+
+            .Click-btn,
+            .secondary-btn {
+                padding: 12px 26px;
+                border-radius: 999px;
+                font-family: inherit;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: transform 0.15s, background-color 0.15s;
+            }
+
+            .Click-btn {
+                border: none;
+                background: var(--gold);
+                color: var(--ink);
+                font-weight: bold;
+            }
+
+            .Click-btn:hover {
+                background: var(--gold-dark);
+                transform: translateY(-2px);
+            }
+
+            .secondary-btn {
+                border: 2px solid var(--gold);
+                background: transparent;
+                color: var(--paper);
+            }
+
+            .secondary-btn:hover {
+                background: rgba(217, 164, 65, 0.2);
+                transform: translateY(-2px);
+            }
+
+            button:focus-visible {
+                outline: 3px solid #fff;
+                outline-offset: 3px;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                * {
+                    transition: none !important;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>OUR MEMORIES</h1>
+        <p class="subtitle">The things We like and We do</p>
+
+        <div class="map-card">
+            <img
+                id="place-img"
+                src="https://cdn.pixabay.com/photo/2026/10/02/08/42/08-42-47-573_1280.jpg"
+                alt="Forgotten Places"
+            />
+            <p class="place-name" id="place-name">Somewhere we used to go</p>
+        </div>
+
+        <p id="memory">Click to discover our memories</p>
+        <p id="counter"></p>
+
+        <div class="buttons">
+            <button class="secondary-btn" id="prev-btn">Previous</button>
+            <button class="secondary-btn" id="discover-btn">Discover a memory</button>
+            <button class="Click-btn" id="next-page-btn">Next page</button>
+        </div>
+
+        <script>
+            // ---------- Your memories: edit, add, or remove items ----------
+            // image: a file in your folder (like "photo1.jpg") or a web link.
+            // If an image can't load, the page keeps working without it.
+            const memories = [
+                {
+                    place: "The old lighthouse",
+                    text: "The old lighthouse where we watched the sunset.",
+                    image: "photo1.jpg"
+                },
+                {
+                    place: "The mango tree",
+                    text: "A quiet bench under the mango tree.",
+                    image: "photo2.jpg"
+                },
+                {
+                    place: "The little cafe",
+                    text: "The small cafe that no longer exists.",
+                    image: "photo3.jpg"
+                },
+                {
+                    place: "The road home",
+                    text: "The road we walked home in the rain.",
+                    image: "photo4.jpg"
+                }
+            ];
+
+            // The page the last button opens.
+            // Use "page2.html" for your photobooth page.
+            const NEXT_PAGE = "photobooth.html";
+
+            // ---------- Find the elements on the page ----------
+            const memoryText = document.getElementById("memory");
+            const counter = document.getElementById("counter");
+            const placeImg = document.getElementById("place-img");
+            const placeName = document.getElementById("place-name");
+            const discoverBtn = document.getElementById("discover-btn");
+            const prevBtn = document.getElementById("prev-btn");
+            const nextPageBtn = document.getElementById("next-page-btn");
+
+            // Keep the original picture as a backup
+            const defaultImage = placeImg.src;
+            let index = -1; // -1 means "no memory shown yet"
+
+            // ---------- Show one memory ----------
+            function showMemory(newIndex) {
+                index = (newIndex + memories.length) % memories.length;
+                const memory = memories[index];
+
+                // Quick fade out, change content, fade back in
+                memoryText.classList.add("fade");
+                setTimeout(function () {
+                    memoryText.textContent = memory.text;
+                    placeName.textContent = memory.place;
+                    counter.textContent =
+                        "Memory " + (index + 1) + " of " + memories.length;
+                    placeImg.src = memory.image;
+                    memoryText.classList.remove("fade");
+                }, 250);
+            }
+
+            // If a memory picture is missing, go back to the default picture
+            placeImg.addEventListener("error", function () {
+                if (placeImg.src !== defaultImage) {
+                    placeImg.src = defaultImage;
+                }
+            });
+
+            // ---------- Button actions ----------
+            discoverBtn.addEventListener("click", function () {
+                showMemory(index + 1);
+                discoverBtn.textContent = "Next memory";
+            });
+
+            prevBtn.addEventListener("click", function () {
+                showMemory(index - 1);
+            });
+
+            nextPageBtn.addEventListener("click", function () {
+                window.location.href = NEXT_PAGE;
+            });
+
+            // Arrow keys also work
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "ArrowRight") showMemory(index + 1);
+                if (event.key === "ArrowLeft") showMemory(index - 1);
+            });
+        </script>
+    </body>
+</html>

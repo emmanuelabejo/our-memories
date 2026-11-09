@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Messages</title>
+
+        <style>
+            :root {
+                --night: #14213d;
+                --paper: #f3e9d2;
+                --ink: #2b2118;
+                --gold: #d9a441;
+                --gold-dark: #b9822a;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 40px 20px;
+                background: radial-gradient(circle at top, #243b6b, var(--night));
+                color: var(--paper);
+                font-family: Georgia, "Times New Roman", serif;
+                text-align: center;
+            }
+
+            h1 {
+                margin: 0;
+                font-size: clamp(2rem, 6vw, 3.2rem);
+                letter-spacing: 0.12em;
+            }
+
+            .subtitle {
+                margin: 8px 0 12px;
+                font-style: italic;
+                opacity: 0.85;
+            }
+
+            h2 {
+                margin: 48px 0 16px;
+                font-size: 1.6rem;
+            }
+
+            section {
+                width: 100%;
+                max-width: 560px;
+            }
+
+            /* ---------- The sealed letter ---------- */
+            #letter-btn {
+                display: block;
+                width: 100%;
+                padding: 28px 20px;
+                border: none;
+                border-radius: 6px;
+                background: var(--paper);
+                color: var(--ink);
+                font-family: inherit;
+                font-size: 1.2rem;
+                cursor: pointer;
+                box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+                transition: transform 0.15s;
+            }
+
+            #letter-btn:hover {
+                transform: translateY(-2px);
+            }
+
+            #letter-btn .seal {
+                display: inline-block;
+                width: 44px;
+                height: 44px;
+                margin-bottom: 10px;
+                border-radius: 50%;
+                background: #a6362f;
+                box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.25);
+            }
+
+            #letter {
+                display: none;
+                padding: 28px 26px;
+                border-radius: 6px;
+                background: var(--paper);
+                color: var(--ink);
+                font-size: 1.1rem;
+                line-height: 1.75;
+                text-align: left;
+                box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+            }
+
+            #letter.open {
+                display: block;
+            }
+
+            #letter p {
+                margin: 0 0 14px;
+            }
+
+            #letter .sign {
+                margin: 20px 0 0;
+                text-align: right;
+                font-style: italic;
+            }
+
+            /* ---------- Write a message ---------- */
+            .write-form {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 20px;
+                background: var(--paper);
+                color: var(--ink);
+                border-radius: 6px;
+                text-align: left;
+                box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+            }
+
+            label {
+                font-size: 0.95rem;
+            }
+
+            input[type="text"],
+            textarea {
+                width: 100%;
+                margin-top: 4px;
+                padding: 10px 12px;
+                border: 2px solid var(--ink);
+                border-radius: 4px;
+                background: #fffaf0;
+                color: var(--ink);
+                font-family: inherit;
+                font-size: 1rem;
+            }
+
+            textarea {
+                min-height: 120px;
+                resize: vertical;
+            }
+
+            .form-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
+
+            #count {
+                font-size: 0.85rem;
+            }
+
+            #form-error {
+                min-height: 1.3em;
+                margin: 0;
+                color: #a6362f;
+                font-size: 0.9rem;
+            }
+
+            /* ---------- Message board ---------- */
+            #board {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .note {
+                padding: 16px 18px;
+                border-left: 6px solid var(--gold);
+                border-radius: 4px;
+                background: var(--paper);
+                color: var(--ink);
+                text-align: left;
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+            }
+
+            .note p {
+                margin: 0 0 10px;
+                line-height: 1.6;
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+            }
+
+            .note .meta {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                font-size: 0.85rem;
+                opacity: 0.85;
+            }
+
+            .note .delete-btn {
+                padding: 4px 12px;
+                border: 2px solid var(--ink);
+                border-radius: 999px;
+                background: transparent;
+                color: var(--ink);
+                font-family: inherit;
+                font-size: 0.8rem;
+                cursor: pointer;
+            }
+
+            .note .delete-btn:hover {
+                background: var(--gold);
+            }
+
+            #empty {
+                opacity: 0.8;
+                font-style: italic;
+            }
+
+            /* ---------- Buttons ---------- */
+            .next-btn,
+            .back-btn,
+            .post-btn {
+                padding: 10px 24px;
+                border-radius: 999px;
+                font-family: inherit;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: transform 0.15s, background-color 0.15s;
+            }
+
+            .post-btn,
+            .next-btn {
+                border: none;
+                background: var(--gold);
+                color: var(--ink);
+                font-weight: bold;
+            }
+
+            .post-btn:hover,
+            .next-btn:hover {
+                background: var(--gold-dark);
+                transform: translateY(-2px);
+            }
+
+            .back-btn {
+                border: 2px solid var(--gold);
+                background: transparent;
+                color: var(--paper);
+            }
+
+            .back-btn:hover {
+                background: rgba(217, 164, 65, 0.2);
+            }
+
+            .nav {
+                display: flex;
+                gap: 12px;
+                margin-top: 56px;
+            }
+
+            button:focus-visible,
+            input:focus-visible,
+            textarea:focus-visible {
+                outline: 3px solid var(--gold-dark);
+                outline-offset: 2px;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                * {
+                    transition: none !important;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>Messages</h1>
+        <p class="subtitle">Words we wanted to keep</p>
+
+        <!-- LETTER -->
+        <section>
+            <h2>A letter for you</h2>
+            <button id="letter-btn" aria-expanded="false" aria-controls="letter">
+                <span class="seal"></span><br />
+                Tap to open
+            </button>
+            <div id="letter">
+                <!-- Write your own letter here -->
+                <p>Happy Monthsary love,</p>
+                <p>
+                    Thank you love for every bit of moments we have share although, sometimes We are
+                    a little kid to fight over a small things but I'm grateful because you want to talk about
+                    kaysa magkagalit ng tulog but its me the problem sometimes kaya I'm so sorry about that,
+                    and I'm sorry kasi worhtless ko pa din boyfriend, like wala pang work para mabigay mga bagay
+                    na gusto mo at mapasaya ka. Thank you love sa mga libre kasi na appreciate ko yun kapag meron
+                    ka hindi ka madamot, I'm grateful with that, at kung marami man tayo pagsubok sa life
+                    mas piliin natin magpakatatag kasi yun naman dapat. So tapos na ko sa madramang line.
+                </p>
+                <p>Happy Monthsary sa atin love, hindi pa din ako makapaniwala pero 3 months na tayo more months
+                to go. Stay cute and gergous love. You are the worth to risk more than you you know kaya
+                stay cute, super sarap mo pa naman. YUMMERSSS, TITIKMANNN!! at yung nga I'm always here for you
+                kapag pagod ka at need mo ng masasandalan love. Iloveyou love!!!
+                </p>
+                <p class="sign">your love EJ</p>
+            </div>
+        </section>
+
+        <!-- WRITE -->
+        <section>
+            <h2>Leave a message</h2>
+            <form class="write-form" id="message-form">
+                <label>
+                    Your name
+                    <input type="text" id="name" maxlength="30" placeholder="Who is writing?" />
+                </label>
+                <label>
+                    Your message
+                    <textarea id="text" maxlength="500" placeholder="Write something sweet..."></textarea>
+                </label>
+                <div class="form-row">
+                    <span id="count">0 / 500</span>
+                    <button type="submit" class="post-btn">Post message</button>
+                </div>
+                <p id="form-error" role="alert"></p>
+            </form>
+        </section>
+
+        <!-- BOARD -->
+        <section>
+            <h2>Our messages</h2>
+            <div id="board"></div>
+            <p id="empty">No messages yet. Be the first to write one.</p>
+        </section>
+
+        <div class="nav">
+            <button class="back-btn" onclick="window.location.href='gallery.html'">Back</button>
+            <button class="next-btn" onclick="window.location.href='deleted.html'">Next</button>
+        </div>
+
+        <script>
+            const STORAGE_KEY = "our-memories-messages";
+
+            const letterBtn = document.getElementById("letter-btn");
+            const letter = document.getElementById("letter");
+            const form = document.getElementById("message-form");
+            const nameInput = document.getElementById("name");
+            const textInput = document.getElementById("text");
+            const count = document.getElementById("count");
+            const errorEl = document.getElementById("form-error");
+            const board = document.getElementById("board");
+            const emptyMsg = document.getElementById("empty");
+
+            // ---------- The letter ----------
+            letterBtn.addEventListener("click", function () {
+                letterBtn.style.display = "none";
+                letter.classList.add("open");
+                letterBtn.setAttribute("aria-expanded", "true");
+            });
+
+            // ---------- Saving and loading ----------
+            // localStorage keeps messages in this browser, even after you close the page.
+            function loadMessages() {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    return saved ? JSON.parse(saved) : [];
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            function saveMessages(list) {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+                } catch (error) {
+                    errorEl.textContent = "Couldn't save messages in this browser.";
+                }
+            }
+
+            let messages = loadMessages();
+
+            // ---------- Show the messages ----------
+            function render() {
+                board.innerHTML = "";
+                emptyMsg.style.display = messages.length ? "none" : "block";
+
+                messages.forEach(function (msg) {
+                    const note = document.createElement("div");
+                    note.className = "note";
+
+                    const body = document.createElement("p");
+                    body.textContent = msg.text; // textContent keeps it safe
+
+                    const meta = document.createElement("div");
+                    meta.className = "meta";
+
+                    const who = document.createElement("span");
+                    who.textContent = msg.name + " · " + msg.date;
+
+                    const del = document.createElement("button");
+                    del.className = "delete-btn";
+                    del.textContent = "Delete";
+                    del.setAttribute("aria-label", "Delete message from " + msg.name);
+                    del.addEventListener("click", function () {
+                        messages = messages.filter(function (m) {
+                            return m.id !== msg.id;
+                        });
+                        saveMessages(messages);
+                        render();
+                    });
+
+                    meta.append(who, del);
+                    note.append(body, meta);
+                    board.append(note);
+                });
+            }
+
+            // ---------- Post a message ----------
+            textInput.addEventListener("input", function () {
+                count.textContent = textInput.value.length + " / 500";
+            });
+
+            form.addEventListener("submit", function (event) {
+                event.preventDefault(); // stop the page from reloading
+
+                const text = textInput.value.trim();
+                const name = nameInput.value.trim() || "Someone special";
+
+                if (!text) {
+                    errorEl.textContent = "Write a message first.";
+                    textInput.focus();
+                    return;
+                }
+
+                errorEl.textContent = "";
+                messages.unshift({
+                    id: Date.now(),
+                    name: name,
+                    text: text,
+                    date: new Date().toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric"
+                    })
+                });
+
+                saveMessages(messages);
+                render();
+
+                textInput.value = "";
+                count.textContent = "0 / 500";
+            });
+
+            render();
+        </script>
+    </body>
+</html>

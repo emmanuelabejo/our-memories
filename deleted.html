@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Deleted</title>
+
+        <style>
+            :root {
+                --night: #14213d;
+                --paper: #f3e9d2;
+                --ink: #2b2118;
+                --gold: #d9a441;
+                --gold-dark: #b9822a;
+                --red: #a6362f;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 40px 20px;
+                background: radial-gradient(circle at top, #243b6b, var(--night));
+                color: var(--paper);
+                font-family: Georgia, "Times New Roman", serif;
+                text-align: center;
+            }
+
+            h1 {
+                margin: 0;
+                font-size: clamp(2rem, 6vw, 3.2rem);
+                letter-spacing: 0.12em;
+            }
+
+            .subtitle {
+                max-width: 480px;
+                margin: 8px 0 28px;
+                font-style: italic;
+                opacity: 0.85;
+                line-height: 1.5;
+            }
+
+            #message {
+                min-height: 1.5em;
+                margin: 0 0 16px;
+            }
+
+            /* ---------- Deleted photos ---------- */
+            #grid {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 24px;
+                width: 100%;
+                max-width: 900px;
+            }
+
+            figure {
+                margin: 0;
+                width: 250px;
+                padding: 10px 10px 14px;
+                background: var(--paper);
+                color: var(--ink);
+                border-radius: 4px;
+                box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+            }
+
+            figure img {
+                display: block;
+                width: 100%;
+                height: 190px;
+                object-fit: cover;
+                border: 2px solid var(--ink);
+                filter: grayscale(0.7);
+            }
+
+            figcaption {
+                margin-top: 10px;
+                font-size: 0.95rem;
+            }
+
+            .days-left {
+                margin: 4px 0 0;
+                font-size: 0.8rem;
+                opacity: 0.75;
+            }
+
+            .photo-actions {
+                display: flex;
+                justify-content: center;
+                gap: 8px;
+                margin-top: 12px;
+            }
+
+            .photo-actions button {
+                padding: 6px 14px;
+                border: 2px solid var(--ink);
+                border-radius: 999px;
+                background: transparent;
+                color: var(--ink);
+                font-family: inherit;
+                font-size: 0.85rem;
+                cursor: pointer;
+            }
+
+            .photo-actions .restore:hover {
+                background: var(--gold);
+            }
+
+            .photo-actions .forever {
+                border-color: var(--red);
+                color: var(--red);
+            }
+
+            .photo-actions .forever:hover {
+                background: var(--red);
+                color: #fff;
+            }
+
+            #empty {
+                max-width: 420px;
+                margin: 20px 0;
+                font-style: italic;
+                line-height: 1.6;
+                opacity: 0.85;
+            }
+
+            /* ---------- Buttons ---------- */
+            .next-btn,
+            .back-btn,
+            .small-btn {
+                padding: 10px 24px;
+                border-radius: 999px;
+                font-family: inherit;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: transform 0.15s, background-color 0.15s;
+            }
+
+            .next-btn {
+                border: none;
+                background: var(--gold);
+                color: var(--ink);
+                font-weight: bold;
+            }
+
+            .next-btn:hover {
+                background: var(--gold-dark);
+                transform: translateY(-2px);
+            }
+
+            .back-btn,
+            .small-btn {
+                border: 2px solid var(--gold);
+                background: transparent;
+                color: var(--paper);
+            }
+
+            .back-btn:hover,
+            .small-btn:hover {
+                background: rgba(217, 164, 65, 0.2);
+            }
+
+            .small-btn {
+                margin-top: 32px;
+            }
+
+            button:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            .nav {
+                display: flex;
+                gap: 12px;
+                margin-top: 48px;
+            }
+
+            button:focus-visible {
+                outline: 3px solid #fff;
+                outline-offset: 3px;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                * {
+                    transition: none !important;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>Deleted</h1>
+        <p class="subtitle">
+            Photos you delete wait here for 30 days. Restore them to the gallery, or delete
+            them forever.
+        </p>
+
+        <p id="message" role="status"></p>
+
+        <div id="grid"></div>
+        <p id="empty">Nothing here. Photos you delete from the photobooth or gallery will show up here.</p>
+
+        <button class="small-btn" id="empty-btn">Delete all forever</button>
+
+        <div class="nav">
+            <button class="back-btn" onclick="window.location.href='messages.html'">Back</button>
+            <button class="next-btn" onclick="window.location.href='index.html'">Home</button>
+        </div>
+
+        <script>
+            // Same storage names the photobooth and gallery use
+            const SAVED_KEY = "our-memories-saved-photos";
+            const TRASH_KEY = "our-memories-deleted-photos";
+            const DAYS_TO_KEEP = 30;
+            const DAY = 24 * 60 * 60 * 1000;
+
+            const grid = document.getElementById("grid");
+            const emptyMsg = document.getElementById("empty");
+            const emptyBtn = document.getElementById("empty-btn");
+            const message = document.getElementById("message");
+
+            // ---------- Reading and saving ----------
+            function load(key) {
+                try {
+                    return JSON.parse(localStorage.getItem(key)) || [];
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            function save(key, list) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(list));
+                    return true;
+                } catch (error) {
+                    message.textContent = "Couldn't save changes: browser storage is full or blocked.";
+                    return false;
+                }
+            }
+
+            // Photos older than 30 days are removed for good
+            function purgeOld() {
+                const now = Date.now();
+                const fresh = load(TRASH_KEY).filter(function (p) {
+                    return now - (p.deletedAt || now) < DAYS_TO_KEEP * DAY;
+                });
+                save(TRASH_KEY, fresh);
+                return fresh;
+            }
+
+            // ---------- Actions ----------
+            function restore(id) {
+                const trash = load(TRASH_KEY);
+                const photo = trash.find(function (p) {
+                    return p.id === id;
+                });
+                if (!photo) return;
+
+                const saved = load(SAVED_KEY);
+                delete photo.deletedAt;
+                saved.push(photo);
+
+                // Put it back in the gallery first, then take it out of Deleted
+                if (!save(SAVED_KEY, saved)) return;
+                save(
+                    TRASH_KEY,
+                    trash.filter(function (p) {
+                        return p.id !== id;
+                    })
+                );
+                message.textContent = "Restored to the gallery.";
+                render();
+            }
+
+            function deleteForever(id) {
+                if (!confirm("Delete this photo forever? This can't be undone.")) return;
+                save(
+                    TRASH_KEY,
+                    load(TRASH_KEY).filter(function (p) {
+                        return p.id !== id;
+                    })
+                );
+                message.textContent = "Photo deleted forever.";
+                render();
+            }
+
+            emptyBtn.addEventListener("click", function () {
+                if (!confirm("Delete everything here forever? This can't be undone.")) return;
+                save(TRASH_KEY, []);
+                message.textContent = "Everything was deleted forever.";
+                render();
+            });
+
+            // ---------- Show the photos ----------
+            function daysLeft(photo) {
+                const used = Math.floor((Date.now() - (photo.deletedAt || Date.now())) / DAY);
+                const left = Math.max(1, DAYS_TO_KEEP - used);
+                return left + (left === 1 ? " day left" : " days left");
+            }
+
+            function render() {
+                const trash = purgeOld();
+                grid.innerHTML = "";
+                emptyMsg.style.display = trash.length ? "none" : "block";
+                emptyBtn.disabled = trash.length === 0;
+
+                // Most recently deleted first
+                trash
+                    .slice()
+                    .reverse()
+                    .forEach(function (photo) {
+                        const fig = document.createElement("figure");
+
+                        const img = document.createElement("img");
+                        img.src = photo.src;
+                        img.alt = photo.caption;
+
+                        const caption = document.createElement("figcaption");
+                        caption.textContent = photo.caption;
+
+                        const left = document.createElement("p");
+                        left.className = "days-left";
+                        left.textContent = daysLeft(photo);
+
+                        const actions = document.createElement("div");
+                        actions.className = "photo-actions";
+
+                        const restoreBtn = document.createElement("button");
+                        restoreBtn.className = "restore";
+                        restoreBtn.textContent = "Restore";
+                        restoreBtn.addEventListener("click", function () {
+                            restore(photo.id);
+                        });
+
+                        const foreverBtn = document.createElement("button");
+                        foreverBtn.className = "forever";
+                        foreverBtn.textContent = "Delete forever";
+                        foreverBtn.addEventListener("click", function () {
+                            deleteForever(photo.id);
+                        });
+
+                        actions.append(restoreBtn, foreverBtn);
+                        fig.append(img, caption, left, actions);
+                        grid.append(fig);
+                    });
+            }
+
+            render();
+        </script>
+    </body>
+</html>
